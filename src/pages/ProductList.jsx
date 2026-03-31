@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Filter, 
   Plus, 
@@ -8,6 +8,7 @@ import {
   Search
 } from 'lucide-react';
 import AdminLayout from '../layouts/AdminLayout';
+import AddProductModal from '../components/AddProductModal';
 
 const products = [
   { id: 1, name: 'T-Shirt', category: 'Women Cloths', price: 79.80, stock: 79, status: 'Scheduled', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=80&h=80&fit=crop' },
@@ -23,6 +24,8 @@ const products = [
 ];
 
 const ProductList = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <AdminLayout title="Products">
       <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm">
@@ -37,7 +40,10 @@ const ProductList = () => {
             <button className="px-4 py-2 border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 transition-colors text-sm font-medium">
               See All
             </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+            >
               <Plus size={18} />
               <span className="text-sm font-medium">Add Product</span>
             </button>
@@ -97,7 +103,7 @@ const ProductList = () => {
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination placeholder */}
         <div className="px-6 py-4 flex items-center justify-between border-t border-stone-100">
           <button className="flex items-center space-x-2 px-4 py-2 border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 transition-colors">
             <ChevronLeft size={18} />
@@ -119,9 +125,15 @@ const ProductList = () => {
             ))}
           </div>
           
-          <div className="w-[100px]"></div> {/* Spacer to center the page numbers */}
+          <div className="w-[100px]"></div>
         </div>
       </div>
+
+      {/* Add Product Modal */}
+      <AddProductModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </AdminLayout>
   );
 };
