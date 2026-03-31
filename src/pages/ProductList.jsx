@@ -5,7 +5,9 @@ import {
   ChevronLeft, 
   ChevronRight, 
   MoreHorizontal,
-  Search
+  Search,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import AdminLayout from '../layouts/AdminLayout';
 import AddProductModal from '../components/AddProductModal';
@@ -25,13 +27,41 @@ const products = [
 
 const ProductList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItems, setSelectedItems] = useState(new Set());
+
+  const toggleSelectItem = (id) => {
+    const newSelection = new Set(selectedItems);
+    if (newSelection.has(id)) {
+      newSelection.delete(id);
+    } else {
+      newSelection.add(id);
+    }
+    setSelectedItems(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedItems.size === products.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(products.map(p => p.id)));
+    }
+  };
+
+  const isAllSelected = selectedItems.size === products.length;
 
   return (
     <AdminLayout title="Products">
       <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm">
         {/* Table Header Controls */}
         <div className="p-6 flex items-center justify-between border-b border-stone-100">
-          <h2 className="text-lg font-bold text-stone-900">Products list</h2>
+          <div className="flex items-center space-x-4">
+            <h2 className="text-lg font-bold text-stone-900">Products list</h2>
+            {selectedItems.size > 0 && (
+              <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold">
+                {selectedItems.size} Selected
+              </span>
+            )}
+          </div>
           <div className="flex items-center space-x-3">
             <button className="flex items-center space-x-2 px-4 py-2 border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 transition-colors">
               <Filter size={18} />
@@ -56,7 +86,12 @@ const ProductList = () => {
             <thead>
               <tr className="bg-stone-50/50 text-stone-400 text-xs uppercase tracking-wider font-semibold">
                 <th className="px-6 py-4 w-12">
-                  <input type="checkbox" className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500" />
+                  <input 
+                    type="checkbox" 
+                    checked={isAllSelected}
+                    onChange={toggleSelectAll}
+                    className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                  />
                 </th>
                 <th className="px-6 py-4">Product Name</th>
                 <th className="px-6 py-4">Category</th>
@@ -67,44 +102,66 @@ const ProductList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {products.map((product) => (
-                <tr key={product.id} className="hover:bg-stone-50/30 transition-colors group">
-                  <td className="px-6 py-4">
-                    <input type="checkbox" className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500" />
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 rounded-lg overflow-hidden border border-stone-200 bg-stone-100">
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+              {products.map((product) => {
+                const isSelected = selectedItems.has(product.id);
+                return (
+                  <tr 
+                    key={product.id} 
+                    className={`transition-colors group ${isSelected ? 'bg-indigo-50/30' : 'hover:bg-stone-50/30'}`}
+                  >
+                    <td className="px-6 py-4">
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected}
+                        onChange={() => toggleSelectItem(product.id)}
+                        className="rounded border-stone-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border border-stone-200 bg-stone-100">
+                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-stone-900 font-medium">{product.name}</span>
                       </div>
-                      <span className="text-stone-900 font-medium">{product.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-stone-500 text-sm">{product.category}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-stone-900 font-semibold">${product.price.toFixed(2)}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-stone-500 text-sm">{product.stock}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge status={product.status} />
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-indigo-600 hover:text-indigo-800 font-medium text-sm">
-                      Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-stone-500 text-sm">{product.category}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-stone-900 font-semibold">${product.price.toFixed(2)}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-stone-500 text-sm">{product.stock}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={product.status} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {isSelected ? (
+                        <div className="flex items-center justify-end space-x-3">
+                          <button className="p-2 text-stone-400 hover:text-indigo-600 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-indigo-100 transition-all">
+                            <Pencil size={16} />
+                          </button>
+                          <button className="p-2 text-stone-400 hover:text-red-600 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-red-100 transition-all">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button className="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-all opacity-40 group-hover:opacity-100">
+                          Details
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
         {/* Pagination placeholder */}
-        <div className="px-6 py-4 flex items-center justify-between border-t border-stone-100">
+        <div className="px-6 py-4 flex items-center justify-between border-t border-stone-100 font-jost">
           <button className="flex items-center space-x-2 px-4 py-2 border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 transition-colors">
             <ChevronLeft size={18} />
             <span className="text-sm font-medium">Previous</span>
