@@ -3,7 +3,7 @@ import { X, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 
 const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [dragActive, setDragActive] = useState(false);
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -23,7 +23,7 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
         status: product.status || 'Active',
         description: product.description || ''
       });
-      setImage(product.image || null);
+      setImages(product.images || (product.image ? [product.image] : []));
     } else {
       setFormData({
         name: '',
@@ -33,14 +33,18 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
         status: 'Active',
         description: ''
       });
-      setImage(null);
+      setImages([]);
     }
   }, [product, isOpen]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSave) {
-      onSave({ ...formData, image });
+      onSave({ 
+        ...formData, 
+        images,
+        image: images.length > 0 ? images[0] : null
+      });
     }
     onClose();
   };
@@ -59,17 +63,21 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setImage(URL.createObjectURL(file));
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const newImages = Array.from(e.dataTransfer.files).map(file => URL.createObjectURL(file));
+      setImages(prev => [...prev, ...newImages].slice(0, 5));
     }
   }, []);
 
   const handleImageChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImage(URL.createObjectURL(file));
+    if (e.target.files && e.target.files.length > 0) {
+      const newImages = Array.from(e.target.files).map(file => URL.createObjectURL(file));
+      setImages(prev => [...prev, ...newImages].slice(0, 5));
     }
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setImages(images.filter((_, idx) => idx !== indexToRemove));
   };
 
   if (!isOpen) return null;
@@ -171,43 +179,53 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
             </div>
 
             {/* Image Upload */}
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-stone-700">Product Image</label>
-              <div 
-                className={`relative border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center transition-all ${
-                  dragActive ? 'border-indigo-500 bg-indigo-50/30' : 'border-stone-200 hover:border-indigo-300'
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                {image ? (
-                  <div className="relative w-40 h-40 rounded-2xl overflow-hidden border border-stone-100 shadow-lg">
-                    <img src={image} alt="Preview" className="w-full h-full object-cover" />
+            <div className="space-y-2 col-span-1 md:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-stone-700">Product Images</label>
+                <span className="text-xs text-stone-500 font-medium">{images.length}/5 Images</span>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-stone-200 shadow-sm group">
+                    <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
                     <button 
-                      onClick={() => setImage(null)}
-                      className="absolute top-2 right-2 p-1.5 bg-white shadow-md rounded-lg text-red-500 hover:text-red-700 transition-colors"
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-2 right-2 p-1.5 bg-white/90 backdrop-blur-sm shadow-sm rounded-lg text-red-500 hover:text-red-700 hover:bg-white transition-all opacity-0 group-hover:opacity-100"
                     >
                       <X size={14} />
                     </button>
+                    {idx === 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 bg-indigo-600/90 text-white text-[10px] font-bold text-center py-1 backdrop-blur-sm">
+                        Primary
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-500 mb-4">
-                      <Upload size={32} />
+                ))}
+                
+                {images.length < 5 && (
+                  <div 
+                    className={`relative aspect-square border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+                      dragActive ? 'border-indigo-500 bg-indigo-50/30' : 'border-stone-200 hover:border-indigo-300 hover:bg-stone-50'
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <div className="p-3 bg-indigo-50 rounded-xl text-indigo-500 mb-2">
+                      <Plus size={24} />
                     </div>
-                    <div className="text-center">
-                      <p className="text-stone-900 font-bold">Drag and drop image here</p>
-                      <p className="text-stone-400 text-sm mt-1">or click to browse from device</p>
-                    </div>
+                    <p className="text-xs font-bold text-stone-600 text-center px-2">Add Image</p>
                     <input 
                       type="file" 
+                      multiple
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       onChange={handleImageChange}
                       accept="image/*"
                     />
-                  </>
+                  </div>
                 )}
               </div>
             </div>

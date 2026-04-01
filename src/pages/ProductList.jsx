@@ -80,7 +80,8 @@ const ProductList = () => {
         id: Math.max(0, ...products.map(p => p.id)) + 1,
         price: parseFloat(productData.price) || 0,
         stock: parseInt(productData.stock) || 0,
-        image: productData.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop'
+        image: productData.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop',
+        images: productData.images?.length > 0 ? productData.images : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop']
       };
       setProducts([newProduct, ...products]);
     }
