@@ -1,15 +1,49 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 
-const AddProductModal = ({ isOpen, onClose }) => {
+const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [dragActive, setDragActive] = useState(false);
   const [image, setImage] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     price: '',
     category: 'Women Cloths',
+    stock: '',
+    status: 'Active',
     description: ''
   });
+
+  useEffect(() => {
+    if (product) {
+      setFormData({
+        name: product.name || '',
+        price: product.price || '',
+        category: product.category || 'Women Cloths',
+        stock: product.stock || '',
+        status: product.status || 'Active',
+        description: product.description || ''
+      });
+      setImage(product.image || null);
+    } else {
+      setFormData({
+        name: '',
+        price: '',
+        category: 'Women Cloths',
+        stock: '',
+        status: 'Active',
+        description: ''
+      });
+      setImage(null);
+    }
+  }, [product, isOpen]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (onSave) {
+      onSave({ ...formData, image });
+    }
+    onClose();
+  };
 
   const handleDrag = useCallback((e) => {
     e.preventDefault();
@@ -45,7 +79,7 @@ const AddProductModal = ({ isOpen, onClose }) => {
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-stone-100">
-          <h2 className="text-xl font-bold text-stone-900">Add New Product</h2>
+          <h2 className="text-xl font-bold text-stone-900">{product ? 'Update Product' : 'Add New Product'}</h2>
           <button onClick={onClose} className="p-2 text-stone-400 hover:text-stone-600 hover:bg-stone-50 rounded-xl transition-all">
             <X size={20} />
           </button>
@@ -53,7 +87,7 @@ const AddProductModal = ({ isOpen, onClose }) => {
 
         {/* Modal Body */}
         <div className="p-8 max-h-[80vh] overflow-y-auto">
-          <form className="space-y-6">
+          <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Product Name */}
               <div className="space-y-2">
@@ -89,6 +123,7 @@ const AddProductModal = ({ isOpen, onClose }) => {
                 <label className="text-sm font-bold text-stone-700">Price ($)</label>
                 <input 
                   type="number" 
+                  step="0.01"
                   placeholder="0.00"
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all"
                   value={formData.price}
@@ -96,15 +131,31 @@ const AddProductModal = ({ isOpen, onClose }) => {
                 />
               </div>
 
-              {/* Placeholder for optional field */}
+              {/* Stock Availability */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-stone-700">Stock Availability</label>
                 <input 
                   type="number" 
                   placeholder="e.g. 100"
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all"
+                  value={formData.stock}
+                  onChange={(e) => setFormData({...formData, stock: e.target.value})}
                 />
               </div>
+            </div>
+
+            {/* Status */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-stone-700">Status</label>
+              <select 
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all appearance-none bg-white cursor-pointer"
+                value={formData.status}
+                onChange={(e) => setFormData({...formData, status: e.target.value})}
+              >
+                <option>Active</option>
+                <option>Scheduled</option>
+                <option>Draft</option>
+              </select>
             </div>
 
             {/* Description */}
@@ -166,13 +217,18 @@ const AddProductModal = ({ isOpen, onClose }) => {
         {/* Modal Footer */}
         <div className="px-8 py-6 bg-stone-50 border-t border-stone-100 flex items-center justify-end space-x-4">
           <button 
+            type="button"
             onClick={onClose}
             className="px-6 py-3 rounded-2xl font-bold text-stone-500 hover:bg-stone-200 transition-all"
           >
             Cancel
           </button>
-          <button className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all">
-            Add Product
+          <button 
+            type="submit" 
+            form="product-form"
+            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+          >
+            {product ? 'Save Changes' : 'Add Product'}
           </button>
         </div>
       </div>

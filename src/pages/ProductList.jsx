@@ -12,7 +12,7 @@ import {
 import AdminLayout from '../layouts/AdminLayout';
 import AddProductModal from '../components/AddProductModal';
 
-const products = [
+const initialProducts = [
   { id: 1, name: 'T-Shirt', category: 'Women Cloths', price: 79.80, stock: 79, status: 'Scheduled', image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=80&h=80&fit=crop' },
   { id: 2, name: 'Shirt', category: 'Man Clots', price: 76.89, stock: 86, status: 'Active', image: 'https://images.unsplash.com/photo-1596755094514-f87034a264c6?w=80&h=80&fit=crop' },
   { id: 3, name: 'Pant', category: 'Kid Cloths', price: 86.65, stock: 74, status: 'Draft', image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=80&h=80&fit=crop' },
@@ -26,8 +26,10 @@ const products = [
 ];
 
 const ProductList = () => {
+  const [products, setProducts] = useState(initialProducts);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState(new Set());
+  const [editingProduct, setEditingProduct] = useState(null);
 
   const toggleSelectItem = (id) => {
     const newSelection = new Set(selectedItems);
@@ -40,14 +42,51 @@ const ProductList = () => {
   };
 
   const toggleSelectAll = () => {
-    if (selectedItems.size === products.length) {
+    if (selectedItems.size === products.length && products.length > 0) {
       setSelectedItems(new Set());
     } else {
       setSelectedItems(new Set(products.map(p => p.id)));
     }
   };
 
-  const isAllSelected = selectedItems.size === products.length;
+  const handleDeleteSingle = (id) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      setProducts(products.filter(p => p.id !== id));
+      const newSelection = new Set(selectedItems);
+      newSelection.delete(id);
+      setSelectedItems(newSelection);
+    }
+  };
+
+  const handleDeleteMultiple = () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedItems.size} products?`)) {
+      setProducts(products.filter(p => !selectedItems.has(p.id)));
+      setSelectedItems(new Set());
+    }
+  };
+
+  const handleSaveProduct = (productData) => {
+    if (editingProduct) {
+      // Update existing
+      setProducts(products.map(p => 
+        p.id === editingProduct.id 
+          ? { ...p, ...productData, price: parseFloat(productData.price) || 0, stock: parseInt(productData.stock) || 0 }
+          : p
+      ));
+    } else {
+      // Add new
+      const newProduct = {
+        ...productData,
+        id: Math.max(0, ...products.map(p => p.id)) + 1,
+        price: parseFloat(productData.price) || 0,
+        stock: parseInt(productData.stock) || 0,
+        image: productData.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop'
+      };
+      setProducts([newProduct, ...products]);
+    }
+  };
+
+  const isAllSelected = products.length > 0 && selectedItems.size === products.length;
 
   return (
     <AdminLayout title="Products">
@@ -57,9 +96,18 @@ const ProductList = () => {
           <div className="flex items-center space-x-4">
             <h2 className="text-lg font-bold text-stone-900">Products list</h2>
             {selectedItems.size > 0 && (
-              <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold">
-                {selectedItems.size} Selected
-              </span>
+              <div className="flex items-center space-x-3">
+                <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold">
+                  {selectedItems.size} Selected
+                </span>
+                <button 
+                  onClick={handleDeleteMultiple}
+                  className="flex items-center space-x-1 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-full text-xs font-bold transition-colors"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete</span>
+                </button>
+              </div>
             )}
           </div>
           <div className="flex items-center space-x-3">
@@ -71,7 +119,10 @@ const ProductList = () => {
               See All
             </button>
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                setEditingProduct(null);
+                setIsModalOpen(true);
+              }}
               className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
             >
               <Plus size={18} />
@@ -138,20 +189,25 @@ const ProductList = () => {
                       <StatusBadge status={product.status} />
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {isSelected ? (
-                        <div className="flex items-center justify-end space-x-3">
-                          <button className="p-2 text-stone-400 hover:text-indigo-600 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-indigo-100 transition-all">
-                            <Pencil size={16} />
-                          </button>
-                          <button className="p-2 text-stone-400 hover:text-red-600 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-red-100 transition-all">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button className="text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-all opacity-40 group-hover:opacity-100">
-                          Details
+                      <div className={`flex items-center justify-end space-x-3 ${isSelected ? '' : 'opacity-40 group-hover:opacity-100 transition-all'}`}>
+                        <button 
+                          onClick={() => {
+                            setEditingProduct(product);
+                            setIsModalOpen(true);
+                          }}
+                          className="p-2 text-stone-400 hover:text-indigo-600 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-indigo-100 transition-all"
+                          title="Edit"
+                        >
+                          <Pencil size={16} />
                         </button>
-                      )}
+                        <button 
+                          onClick={() => handleDeleteSingle(product.id)}
+                          className="p-2 text-stone-400 hover:text-red-600 hover:bg-white rounded-lg shadow-sm border border-transparent hover:border-red-100 transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -186,10 +242,15 @@ const ProductList = () => {
         </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* Add/Edit Product Modal */}
       <AddProductModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingProduct(null);
+        }} 
+        product={editingProduct}
+        onSave={handleSaveProduct}
       />
     </AdminLayout>
   );
