@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Filter, 
   Plus, 
@@ -26,10 +26,37 @@ const initialProducts = [
 ];
 
 const ProductList = () => {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [editingProduct, setEditingProduct] = useState(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const response = await fetch('http://localhost:5000/api/products');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch products');
+        }
+        
+        const data = await response.json();
+        setProducts(Array.isArray(data) ? data : data.products || []);
+      } catch (err) {
+        setError(err.message || 'Failed to load products');
+        // Optionally fall back to initial products
+        setProducts(initialProducts);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
 
   const toggleSelectItem = (id) => {
     const newSelection = new Set(selectedItems);
@@ -92,6 +119,21 @@ const ProductList = () => {
   return (
     <AdminLayout title="Products">
       <div className="bg-white rounded-3xl border border-stone-200 overflow-hidden shadow-sm">
+        {/* Error Alert */}
+        {error && (
+          <div className="p-6 bg-red-50 border-b border-red-200">
+            <div className="flex items-center justify-between">
+              <p className="text-red-700 font-medium">{error}</p>
+              <button 
+                onClick={() => setError('')}
+                className="text-red-500 hover:text-red-700 text-lg"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Table Header Controls */}
         <div className="p-6 flex items-center justify-between border-b border-stone-100">
           <div className="flex items-center space-x-4">
@@ -134,7 +176,21 @@ const ProductList = () => {
 
         {/* Product Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-block">
+                <div className="animate-spin mb-4">
+                  <div className="h-8 w-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full"></div>
+                </div>
+                <p className="text-stone-600 font-medium">Loading products...</p>
+              </div>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="p-12 text-center">
+              <p className="text-stone-400 font-medium">No products found</p>
+            </div>
+          ) : (
+            <table className="w-full text-left">
             <thead>
               <tr className="bg-stone-50/50 text-stone-400 text-xs uppercase tracking-wider font-semibold">
                 <th className="px-6 py-4 w-12">
@@ -214,7 +270,8 @@ const ProductList = () => {
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          )}
         </div>
 
         {/* Pagination placeholder */}

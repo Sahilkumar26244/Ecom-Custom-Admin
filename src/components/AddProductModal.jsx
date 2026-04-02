@@ -4,6 +4,8 @@ import { X, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [dragActive, setDragActive] = useState(false);
   const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -37,16 +39,47 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
     }
   }, [product, isOpen]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onSave) {
-      onSave({ 
-        ...formData, 
-        images,
-        image: images.length > 0 ? images[0] : null
+    setError('');
+    setLoading(true);
+
+    try {
+      const productPayload = {
+        name: formData.name,
+        price: parseFloat(formData.price),
+        category: formData.category,
+        stock: parseInt(formData.stock),
+        status: formData.status,
+        description: formData.description,
+        image: images.length > 0 ? images[0] : null,
+        images: images
+      };
+
+      const response = await fetch('http://localhost:5000/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productPayload)
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to create product');
+      }
+
+      const result = await response.json();
+      
+      if (onSave) {
+        onSave(productPayload);
+      }
+      
+      setLoading(false);
+      onClose();
+    } catch (err) {
+      setError(err.message || 'An error occurred while creating the product');
+      setLoading(false);
     }
-    onClose();
   };
 
   const handleDrag = useCallback((e) => {
@@ -95,6 +128,11 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
 
         {/* Modal Body */}
         <div className="p-8 max-h-[80vh] overflow-y-auto">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-medium">
+              {error}
+            </div>
+          )}
           <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Product Name */}
@@ -244,9 +282,10 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
           <button 
             type="submit" 
             form="product-form"
-            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+            disabled={loading}
+            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {product ? 'Save Changes' : 'Add Product'}
+            {loading ? 'Saving...' : (product ? 'Save Changes' : 'Add Product')}
           </button>
         </div>
       </div>
