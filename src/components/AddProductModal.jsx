@@ -4,7 +4,8 @@ import { X, Upload, Plus, Image as ImageIcon } from 'lucide-react';
 const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [dragActive, setDragActive] = useState(false);
   const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
@@ -26,6 +27,7 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
         description: product.description || ''
       });
       setImages(product.images || (product.image ? [product.image] : []));
+      setImageFiles([]);
     } else {
       setFormData({
         name: '',
@@ -36,19 +38,77 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
         description: ''
       });
       setImages([]);
+      setImageFiles([]);
     }
+    setError('');
   }, [product, isOpen]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (onSave) {
-      onSave({ 
-        ...formData, 
-        images,
-        image: images.length > 0 ? images[0] : null
+    setIsLoading(true);
+    setError('');
+
+    try {
+      // Validate required fields
+      if (!formData.name || !formData.price || !formData.stock || !formData.description || !formData.category) {
+        setError('Please fill in all required fields');
+        setIsLoading(false);
+        return;
+      }
+
+      // Prepare data as JSON
+      const productData = {
+        name: formData.name.trim(),
+        price: parseFloat(formData.price),
+        category: formData.category,
+        stock: parseInt(formData.stock),
+        status: formData.status,
+        description: formData.description.trim()
+      };
+
+      console.log('Sending Product Data:', productData);
+
+      // Post to backend with JSON
+      const response = await fetch('http://localhost:5000/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(productData)
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create product');
+      }
+
+      const result = await response.json();
+      console.log('Product Created:', result);
+      
+      // Call onSave callback if provided
+      if (onSave) {
+        onSave(result);
+      }
+
+      // Show success message and close modal
+      alert('Product created successfully!');
+      setFormData({
+        name: '',
+        price: '',
+        category: 'Women Cloths',
+        stock: '',
+        status: 'Active',
+        description: ''
+      });
+      setImages([]);
+      setImageFiles([]);
+      onClose();
+    } catch (err) {
+      setError(err.message || 'Error creating product. Please try again.');
+      console.error('Error:', err);
+    } finally {
+      setIsLoading(false);
     }
-    onClose();
   };
 
   const handleDrag = useCallback((e) => {
@@ -66,20 +126,25 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const newImages = Array.from(e.dataTransfer.files).map(file => URL.createObjectURL(file));
-      setImages(prev => [...prev, ...newImages].slice(0, 5));
+      const files = Array.from(e.dataTransfer.files).slice(0, 5 - images.length);
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      setImages(prev => [...prev, ...newPreviews].slice(0, 5));
+      setImageFiles(prev => [...prev, ...files].slice(0, 5));
     }
-  }, []);
+  }, [images.length]);
 
   const handleImageChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newImages = Array.from(e.target.files).map(file => URL.createObjectURL(file));
-      setImages(prev => [...prev, ...newImages].slice(0, 5));
+      const files = Array.from(e.target.files).slice(0, 5 - images.length);
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      setImages(prev => [...prev, ...newPreviews].slice(0, 5));
+      setImageFiles(prev => [...prev, ...files].slice(0, 5));
     }
   };
 
   const handleRemoveImage = (indexToRemove) => {
     setImages(images.filter((_, idx) => idx !== indexToRemove));
+    setImageFiles(imageFiles.filter((_, idx) => idx !== indexToRemove));
   };
 
   if (!isOpen) return null;
@@ -97,6 +162,11 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
 
         {/* Modal Body */}
         <div className="p-8 max-h-[80vh] overflow-y-auto">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+              {error}
+            </div>
+          )}
           <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Product Name */}
@@ -246,9 +316,10 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
           <button 
             type="submit" 
             form="product-form"
-            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all"
+            disabled={isLoading}
+            className="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all disabled:bg-indigo-400 disabled:cursor-not-allowed"
           >
-            {product ? 'Save Changes' : 'Add Product'}
+            {isLoading ? 'Saving...' : (product ? 'Save Changes' : 'Add Product')}
           </button>
         </div>
       </div>
