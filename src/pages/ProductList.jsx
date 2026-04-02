@@ -45,11 +45,13 @@ const ProductList = () => {
         }
         
         const data = await response.json();
-        setProducts(Array.isArray(data) ? data : data.products || []);
+        const fetchedArray = Array.isArray(data) ? data : data.products || [];
+        const normalizedArray = fetchedArray.map(p => ({...p, id: p.id || p._id}));
+        setProducts(normalizedArray.reverse());
       } catch (err) {
         setError(err.message || 'Failed to load products');
         // Optionally fall back to initial products
-        setProducts(initialProducts);
+        setProducts([...initialProducts].reverse());
       } finally {
         setLoading(false);
       }
@@ -93,22 +95,24 @@ const ProductList = () => {
   };
 
   const handleSaveProduct = (productData) => {
+    const actualProduct = productData.product || productData.data || productData;
     if (editingProduct) {
       // Update existing
       setProducts(products.map(p => 
         p.id === editingProduct.id 
-          ? { ...p, ...productData, price: parseFloat(productData.price) || 0, stock: parseInt(productData.stock) || 0 }
+          ? { ...p, ...actualProduct, price: parseFloat(actualProduct.price) || 0, stock: parseInt(actualProduct.stock) || 0 }
           : p
       ));
     } else {
       // Add new
+      const newId = actualProduct._id || actualProduct.id || (products.length > 0 ? Math.max(0, ...products.map(p => p.id || 0)) + 1 : 1);
       const newProduct = {
-        ...productData,
-        id: Math.max(0, ...products.map(p => p.id)) + 1,
-        price: parseFloat(productData.price) || 0,
-        stock: parseInt(productData.stock) || 0,
-        image: productData.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop',
-        images: productData.images?.length > 0 ? productData.images : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop']
+        ...actualProduct,
+        id: newId,
+        price: parseFloat(actualProduct.price) || 0,
+        stock: parseInt(actualProduct.stock) || 0,
+        image: actualProduct.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop',
+        images: actualProduct.images?.length > 0 ? actualProduct.images : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=80&h=80&fit=crop']
       };
       setProducts([newProduct, ...products]);
     }
