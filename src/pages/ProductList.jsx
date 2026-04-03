@@ -78,19 +78,45 @@ const ProductList = () => {
     }
   };
 
-  const handleDeleteSingle = (id) => {
+  const handleDeleteSingle = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      setProducts(products.filter(p => p.id !== id));
-      const newSelection = new Set(selectedItems);
-      newSelection.delete(id);
-      setSelectedItems(newSelection);
+      try {
+        const response = await fetch(`http://localhost:5000/api/products/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete product');
+        }
+        
+        setProducts(prev => prev.filter(p => p.id !== id));
+        const newSelection = new Set(selectedItems);
+        newSelection.delete(id);
+        setSelectedItems(newSelection);
+      } catch (err) {
+        setError(err.message || 'Failed to delete product');
+      }
     }
   };
 
-  const handleDeleteMultiple = () => {
+  const handleDeleteMultiple = async () => {
     if (window.confirm(`Are you sure you want to delete ${selectedItems.size} products?`)) {
-      setProducts(products.filter(p => !selectedItems.has(p.id)));
-      setSelectedItems(new Set());
+      try {
+        const deletePromises = Array.from(selectedItems).map(id => 
+          fetch(`http://localhost:5000/api/products/${id}`, {
+            method: 'DELETE'
+          }).then(res => {
+            if (!res.ok) throw new Error('Failed to delete a product');
+          })
+        );
+        
+        await Promise.all(deletePromises);
+        
+        setProducts(prev => prev.filter(p => !selectedItems.has(p.id)));
+        setSelectedItems(new Set());
+      } catch (err) {
+        setError(err.message || 'Failed to delete some products');
+      }
     }
   };
 
