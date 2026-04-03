@@ -9,13 +9,21 @@ import {
   BarChart2, 
   Bell, 
   Settings,
-  Infinity
+  Infinity,
+  LogOut
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
   const [isProductsOpen, setIsProductsOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('admin');
+    navigate('/login');
+  };
 
   const navItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/' },
@@ -102,6 +110,17 @@ const Sidebar = () => {
           </div>
         ))}
       </nav>
+
+      {/* Logout Button */}
+      <div className="px-4 mt-auto border-t border-stone-200 pt-4">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 transition-colors font-medium"
+        >
+          <LogOut size={20} />
+          <span>Logout</span>
+        </button>
+      </div>
     </div>
   );
 };

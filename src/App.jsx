@@ -3,6 +3,8 @@ import { Toaster } from 'react-hot-toast';
 import Dashboard from './pages/Dashboard';
 import ProductList from './pages/ProductList';
 import Settings from './pages/Settings';
+import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -16,11 +18,29 @@ function App() {
       />
       <Router>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/products" element={<ProductList />} />
-          <Route path="/settings" element={<Settings />} />
-          {/* Add more routes here */}
+          <Route path="/login" element={<Login />} />
+          
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/products" element={
+            <ProtectedRoute>
+              <ProductList />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
+          {/* Add more protected routes here */}
         </Routes>
       </Router>
     </>
