@@ -9,6 +9,7 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import AdminLayout from '../layouts/AdminLayout';
 import AddProductModal from '../components/AddProductModal';
 
@@ -93,8 +94,10 @@ const ProductList = () => {
         const newSelection = new Set(selectedItems);
         newSelection.delete(id);
         setSelectedItems(newSelection);
+        toast.success('Product deleted successfully');
       } catch (err) {
         setError(err.message || 'Failed to delete product');
+        toast.error('Failed to delete product');
       }
     }
   };
@@ -114,8 +117,10 @@ const ProductList = () => {
         
         setProducts(prev => prev.filter(p => !selectedItems.has(p.id)));
         setSelectedItems(new Set());
+        toast.success(`${selectedItems.size} products deleted successfully`);
       } catch (err) {
         setError(err.message || 'Failed to delete some products');
+        toast.error('Failed to delete some products');
       }
     }
   };

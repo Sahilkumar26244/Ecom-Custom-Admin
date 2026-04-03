@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Upload, Plus, Image as ImageIcon } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -91,7 +92,8 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
       }
 
       // Show success message and close modal
-      alert('Product created successfully!');
+      toast.success(product ? 'Product updated successfully!' : 'Product created successfully!');
+      
       setFormData({
         name: '',
         price: '',
@@ -105,6 +107,7 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
       onClose();
     } catch (err) {
       setError(err.message || 'Error creating product. Please try again.');
+      toast.error(err.message || 'Error creating product. Please try again.');
       console.error('Error:', err);
     } finally {
       setIsLoading(false);
