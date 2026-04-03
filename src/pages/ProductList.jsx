@@ -39,7 +39,12 @@ const ProductList = () => {
       try {
         setLoading(true);
         setError('');
-        const response = await fetch('http://localhost:5000/api/products');
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:5000/api/products', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch products');
@@ -82,8 +87,12 @@ const ProductList = () => {
   const handleDeleteSingle = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch(`http://localhost:5000/api/products/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
         
         if (!response.ok) {
@@ -105,9 +114,13 @@ const ProductList = () => {
   const handleDeleteMultiple = async () => {
     if (window.confirm(`Are you sure you want to delete ${selectedItems.size} products?`)) {
       try {
+        const token = localStorage.getItem('token');
         const deletePromises = Array.from(selectedItems).map(id => 
           fetch(`http://localhost:5000/api/products/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           }).then(res => {
             if (!res.ok) throw new Error('Failed to delete a product');
           })

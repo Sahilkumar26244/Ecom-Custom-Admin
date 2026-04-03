@@ -73,11 +73,15 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
       const url = product ? `http://localhost:5000/api/products/${product._id || product.id}` : 'http://localhost:5000/api/products';
       const method = product ? 'PUT' : 'POST';
 
+      // Get token from local storage
+      const token = localStorage.getItem('token');
+
       // Send to backend with JSON
       const response = await fetch(url, {
         method: method,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(productData)
       });
