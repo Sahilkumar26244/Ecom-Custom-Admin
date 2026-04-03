@@ -69,9 +69,13 @@ const AddProductModal = ({ isOpen, onClose, product, onSave }) => {
 
       console.log('Sending Product Data:', productData);
 
-      // Post to backend with JSON
-      const response = await fetch('http://localhost:5000/api/products', {
-        method: 'POST',
+      // Define URL and method based on whether we are editing or creating
+      const url = product ? `http://localhost:5000/api/products/${product._id || product.id}` : 'http://localhost:5000/api/products';
+      const method = product ? 'PUT' : 'POST';
+
+      // Send to backend with JSON
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json'
         },
