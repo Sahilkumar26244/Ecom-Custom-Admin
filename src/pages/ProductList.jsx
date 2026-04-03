@@ -33,6 +33,7 @@ const ProductList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [editingProduct, setEditingProduct] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -76,13 +77,7 @@ const ProductList = () => {
     setSelectedItems(newSelection);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedItems.size === products.length && products.length > 0) {
-      setSelectedItems(new Set());
-    } else {
-      setSelectedItems(new Set(products.map(p => p.id)));
-    }
-  };
+  // toggleSelectAll moved below
 
   const handleDeleteSingle = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
@@ -162,7 +157,51 @@ const ProductList = () => {
     }
   };
 
-  const isAllSelected = products.length > 0 && selectedItems.size === products.length;
+  const itemsPerPage = 8;
+  const totalPages = Math.ceil(products.length / itemsPerPage);
+  
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [products.length, currentPage, totalPages]);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentProducts = products.slice(indexOfFirstItem, indexOfLastItem);
+
+  const toggleSelectAll = () => {
+    const currentProductIds = currentProducts.map(p => p.id);
+    const allCurrentSelected = currentProductIds.every(id => selectedItems.has(id));
+    
+    const newSelection = new Set(selectedItems);
+    if (allCurrentSelected && currentProductIds.length > 0) {
+      currentProductIds.forEach(id => newSelection.delete(id));
+    } else {
+      currentProductIds.forEach(id => newSelection.add(id));
+    }
+    setSelectedItems(newSelection);
+  };
+
+  const isAllSelected = currentProducts.length > 0 && currentProducts.every(p => selectedItems.has(p.id));
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <AdminLayout title="Products">
@@ -258,7 +297,7 @@ const ProductList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {products.map((product) => {
+              {currentProducts.map((product) => {
                 const isSelected = selectedItems.has(product.id);
                 return (
                   <tr 
@@ -322,30 +361,55 @@ const ProductList = () => {
           )}
         </div>
 
-        {/* Pagination placeholder */}
-        <div className="px-6 py-4 flex items-center justify-between border-t border-stone-100 font-jost">
-          <button className="flex items-center space-x-2 px-4 py-2 border border-stone-200 rounded-xl text-stone-600 hover:bg-stone-50 transition-colors">
-            <ChevronLeft size={18} />
-            <span className="text-sm font-medium">Previous</span>
-          </button>
-          
-          <div className="flex items-center space-x-2">
-            {[1, 2, 3, '...', 8, 9, 10].map((page, idx) => (
-              <button 
-                key={idx}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-medium transition-colors ${
-                  page === 1 
-                    ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
-                    : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+        {/* Pagination */}
+        {products.length > itemsPerPage && (
+          <div className="px-6 py-4 flex items-center justify-between border-t border-stone-100 font-jost">
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className={`flex items-center space-x-2 px-4 py-2 border border-stone-200 rounded-xl transition-colors ${
+                currentPage === 1 
+                  ? 'text-stone-400 bg-stone-50 cursor-not-allowed' 
+                  : 'text-stone-600 hover:bg-stone-50'
+              }`}
+            >
+              <ChevronLeft size={18} />
+              <span className="text-sm font-medium">Previous</span>
+            </button>
+            
+            <div className="flex items-center space-x-2">
+              {getPageNumbers().map((page, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => typeof page === 'number' && setCurrentPage(page)}
+                  disabled={page === '...'}
+                  className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-medium transition-colors ${
+                    page === currentPage 
+                      ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
+                      : page === '...'
+                        ? 'text-stone-400 cursor-default'
+                        : 'text-stone-400 hover:text-stone-600 hover:bg-stone-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className={`flex items-center space-x-2 px-4 py-2 border border-stone-200 rounded-xl transition-colors ${
+                currentPage === totalPages 
+                  ? 'text-stone-400 bg-stone-50 cursor-not-allowed' 
+                  : 'text-stone-600 hover:bg-stone-50'
+              }`}
+            >
+              <span className="text-sm font-medium">Next</span>
+              <ChevronRight size={18} />
+            </button>
           </div>
-          
-          <div className="w-[100px]"></div>
-        </div>
+        )}
       </div>
 
       {/* Add/Edit Product Modal */}
