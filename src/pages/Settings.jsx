@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -13,19 +13,80 @@ import AdminLayout from '../layouts/AdminLayout';
 const Settings = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [profile, setProfile] = useState({
-    firstName: 'Sahil',
-    lastName: 'Admin',
-    email: 'sahil@example.com',
-    phone: '+91 98765 43210',
-    location: 'Mumbai, India',
-    bio: 'Experienced E-commerce Administrator managing product catalogs and store performance.',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    location: '',
+    bio: '',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop'
   });
 
-  const handleSave = (e) => {
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          const parts = (data.name || '').split(' ');
+          const firstName = parts[0] || '';
+          const lastName = parts.slice(1).join(' ') || '';
+          
+          setProfile({
+            firstName,
+            lastName,
+            email: data.email || '',
+            phone: data.phoneNumber || '',
+            location: data.location || '',
+            bio: data.bio || '',
+            avatar: data.profilePicture || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop'
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: `${profile.firstName} ${profile.lastName}`.trim(),
+          email: profile.email,
+          phoneNumber: profile.phone,
+          location: profile.location,
+          bio: profile.bio,
+          profilePicture: profile.avatar,
+          role:'admin', // Assuming role is fixed for this user, adjust as needed
+          password:'12345678' // Temporary password for testing, should be handled properly in production
+        })
+      });
+      
+      if (res.ok) {
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Error updating profile');
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      alert('Error updating profile');
+    }
   };
 
   return (
