@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Camera, 
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Camera,
   Save,
   CheckCircle2
 } from 'lucide-react';
@@ -12,10 +12,12 @@ import AdminLayout from '../layouts/AdminLayout';
 
 const Settings = () => {
   const [showSuccess, setShowSuccess] = useState(false);
+  const [emailError, setEmailError] = useState('');
   const [profile, setProfile] = useState({
     firstName: '',
     lastName: '',
     email: '',
+    countryCode: '+91',
     phone: '',
     location: '',
     bio: '',
@@ -36,12 +38,24 @@ const Settings = () => {
           const parts = (data.name || '').split(' ');
           const firstName = parts[0] || '';
           const lastName = parts.slice(1).join(' ') || '';
-          
+
+          let fetchedPhone = data.phoneNumber || '';
+          let fetchedCountryCode = '+91';
+          const codes = ['+1', '+44', '+91', '+61', '+81', '+49'];
+          for (let code of codes) {
+            if (fetchedPhone.startsWith(code)) {
+              fetchedCountryCode = code;
+              fetchedPhone = fetchedPhone.replace(code, '').trim();
+              break;
+            }
+          }
+
           setProfile({
             firstName,
             lastName,
             email: data.email || '',
-            phone: data.phoneNumber || '',
+            countryCode: fetchedCountryCode,
+            phone: fetchedPhone,
             location: data.location || '',
             bio: data.bio || '',
             avatar: data.profilePicture || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop'
@@ -56,6 +70,15 @@ const Settings = () => {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    
+    // Email Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(profile.email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+    setEmailError('');
+
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/auth/profile', {
@@ -67,15 +90,15 @@ const Settings = () => {
         body: JSON.stringify({
           name: `${profile.firstName} ${profile.lastName}`.trim(),
           email: profile.email,
-          phoneNumber: profile.phone,
+          phoneNumber: `${profile.countryCode} ${profile.phone}`.trim(),
           location: profile.location,
           bio: profile.bio,
           profilePicture: profile.avatar,
-          role:'admin', // Assuming role is fixed for this user, adjust as needed
-          password:'12345678' // Temporary password for testing, should be handled properly in production
+          role: 'admin', // Assuming role is fixed for this user, adjust as needed
+          // password:'12345678' // Temporary password for testing, should be handled properly in production
         })
       });
-      
+
       if (res.ok) {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
@@ -117,13 +140,13 @@ const Settings = () => {
                 <Camera size={18} />
               </button>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-stone-900">{profile.firstName} {profile.lastName}</h2>
                 <p className="text-stone-500 font-medium">Administrator</p>
               </div>
-              <button 
+              <button
                 onClick={handleSave}
                 className="flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all"
               >
@@ -143,24 +166,24 @@ const Settings = () => {
               </div>
               <h3 className="text-lg font-bold text-stone-900">Personal Info</h3>
             </div>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-stone-700">First Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={profile.firstName}
-                    onChange={(e) => setProfile({...profile, firstName: e.target.value})}
+                    onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-stone-700">Last Name</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={profile.lastName}
-                    onChange={(e) => setProfile({...profile, lastName: e.target.value})}
+                    onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
@@ -168,10 +191,10 @@ const Settings = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-stone-700">Bio</label>
-                <textarea 
+                <textarea
                   rows="3"
                   value={profile.bio}
-                  onChange={(e) => setProfile({...profile, bio: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all resize-none"
                 ></textarea>
               </div>
@@ -191,21 +214,42 @@ const Settings = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-stone-700">Email Address</label>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({...profile, email: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all"
+                    onChange={(e) => {
+                      setProfile({ ...profile, email: e.target.value });
+                      if (emailError) setEmailError('');
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl border outline-none transition-all ${
+                      emailError ? 'border-red-500 focus:border-red-500 bg-red-50' : 'border-stone-200 focus:border-indigo-500'
+                    }`}
                   />
+                  {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-stone-700">Phone Number</label>
-                  <input 
-                    type="text" 
-                    value={profile.phone}
-                    onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all"
-                  />
+                  <div className="flex">
+                    <select
+                      value={profile.countryCode}
+                      onChange={(e) => setProfile({ ...profile, countryCode: e.target.value })}
+                      className="px-3 py-3 rounded-l-xl border border-r-0 border-stone-200 bg-stone-50 focus:border-indigo-500 outline-none transition-all text-stone-700"
+                    >
+                      <option value="+1">+1 (US)</option>
+                      <option value="+44">+44 (UK)</option>
+                      <option value="+91">+91 (IN)</option>
+                      <option value="+61">+61 (AU)</option>
+                      <option value="+81">+81 (JP)</option>
+                      <option value="+49">+49 (DE)</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={profile.phone}
+                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      className="flex-1 px-4 py-3 rounded-r-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all w-full"
+                      placeholder="Phone number"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -220,10 +264,10 @@ const Settings = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-bold text-stone-700">Current Address</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={profile.location}
-                  onChange={(e) => setProfile({...profile, location: e.target.value})}
+                  onChange={(e) => setProfile({ ...profile, location: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-indigo-500 outline-none transition-all"
                   placeholder="Street, City, Country"
                 />
