@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ALL_COUNTRY_CODES } from '../utils/countryCodes';
 import {
   User,
   Mail,
@@ -41,13 +42,14 @@ const Settings = () => {
 
           let fetchedPhone = data.phoneNumber || '';
           let fetchedCountryCode = '+91';
-          const codes = ['+1', '+44', '+91', '+61', '+81', '+49'];
-          for (let code of codes) {
-            if (fetchedPhone.startsWith(code)) {
-              fetchedCountryCode = code;
-              fetchedPhone = fetchedPhone.replace(code, '').trim();
-              break;
-            }
+          
+          // Sort codes by length descending to match longest code first (e.g. +1242 before +1)
+          const sortedCodes = [...ALL_COUNTRY_CODES].sort((a,b) => b.code.length - a.code.length);
+          const matchedCountry = sortedCodes.find(c => fetchedPhone.startsWith(c.code));
+          
+          if (matchedCountry) {
+            fetchedCountryCode = matchedCountry.code;
+            fetchedPhone = fetchedPhone.replace(matchedCountry.code, '').trim();
           }
 
           setProfile({
@@ -95,7 +97,7 @@ const Settings = () => {
           bio: profile.bio,
           profilePicture: profile.avatar,
           role: 'admin', // Assuming role is fixed for this user, adjust as needed
-          // password:'12345678' // Temporary password for testing, should be handled properly in production
+          password:'12345678' // Temporary password for testing, should be handled properly in production
         })
       });
 
@@ -233,14 +235,13 @@ const Settings = () => {
                     <select
                       value={profile.countryCode}
                       onChange={(e) => setProfile({ ...profile, countryCode: e.target.value })}
-                      className="px-3 py-3 rounded-l-xl border border-r-0 border-stone-200 bg-stone-50 focus:border-indigo-500 outline-none transition-all text-stone-700"
+                      className="px-3 py-3 rounded-l-xl border border-r-0 border-stone-200 bg-stone-50 focus:border-indigo-500 outline-none transition-all text-stone-700 max-w-[140px] truncate"
                     >
-                      <option value="+1">+1 (US)</option>
-                      <option value="+44">+44 (UK)</option>
-                      <option value="+91">+91 (IN)</option>
-                      <option value="+61">+61 (AU)</option>
-                      <option value="+81">+81 (JP)</option>
-                      <option value="+49">+49 (DE)</option>
+                      {ALL_COUNTRY_CODES.map((country, idx) => (
+                        <option key={`${country.code}-${idx}`} value={country.code}>
+                          {country.code} ({country.cca2})
+                        </option>
+                      ))}
                     </select>
                     <input
                       type="text"
