@@ -97,7 +97,7 @@ const Settings = () => {
           bio: profile.bio,
           profilePicture: profile.avatar,
           role: 'admin', // Assuming role is fixed for this user, adjust as needed
-          password:'12345678' // Temporary password for testing, should be handled properly in production
+          // password:'12345678' // Temporary password for testing, should be handled properly in production
         })
       });
 
